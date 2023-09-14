@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      /* CSS styles */
+      @font-face {
+        font-family: 'Roboto';
+        src: url('roboto.ttf') format('truetype');
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Roboto', Arial, sans-serif;
+      }
+
+      #clickerCanvas {
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Canvas element -->
+    <canvas id="clickerCanvas"></canvas>
+
+    <script>
+      // Get the canvas element
+      const canvas = document.getElementById("clickerCanvas");
+      const context = canvas.getContext("2d");
+
+      // Set canvas dimensions
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Initialize click count
+      let clickCount = 0;
+      let showCounter = false;
+
+      // Animation variables
+      let animate = false;
+      let animationFrames = 30;
+      let animationFrame = 0;
+
+      // Load corndog image
+      const corndogImg = new Image();
+      corndogImg.src = "corndog.png";
+
+      // Draw corndog icon and click count
+      corndogImg.onload = function () {
+        draw();
+      };
+
+      // Handle click events
+      canvas.addEventListener("click", function () {
+        clickCount++;
+        if (!showCounter) showCounter = true;
+
+        // Start the animation
+        animate = true;
+        animationFrame = 0;
+
+        draw();
+      });
+
+      // Draw corndog icon and click count on canvas
+      function draw() {
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate corndog position
+        const corndogSize = 128;
+        const corndogX = canvas.width / 2 - corndogSize / 2;
+        const corndogY = canvas.height / 2 - corndogSize / 2;
+
+        // Draw corndog icon with animation
+        if (animate) {
+          const scaleFactor = 1 + Math.abs(Math.sin((animationFrame / animationFrames) * Math.PI));
+          const scaledSize = corndogSize * scaleFactor;
+          const scaledX = corndogX - (scaledSize - corndogSize) / 2;
+          const scaledY = corndogY - (scaledSize - corndogSize) / 2;
+
+          context.drawImage(corndogImg, scaledX, scaledY, scaledSize, scaledSize);
+
+          // Increment animation frame
+          animationFrame++;
+          if (animationFrame >= animationFrames) {
+            animate = false;
+          }
+        } else {
+          context.drawImage(corndogImg, corndogX, corndogY, corndogSize, corndogSize);
+        }
+
+        // Draw click count if it should be shown
+        if (showCounter) {
+          context.font = "24px Roboto";
+          context.fillStyle = "#000";
+          context.textAlign = "center";
+          context.fillText(
+            "Corndogs: " + clickCount,
+            canvas.width / 2,
+            canvas.height / 2 + corndogSize
+          );
+        }
+
+        // Draw attribution
+        context.font = "12px Roboto";
+        context.fillStyle = "#999";
+        context.textAlign = "right";
+        context.fillText("Icon by Icons8", canvas.width - 10, canvas.height - 10);
+      }
+    </script>
+  </body>
+</html>
