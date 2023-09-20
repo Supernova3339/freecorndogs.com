@@ -1,113 +1,296 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <style>
-      /* CSS styles */
-      @font-face {
-        font-family: 'Roboto';
-        src: url('roboto.ttf') format('truetype');
+<html lang="en">
+<head>
+  <!-- CSS styles and other head content -->
+  <style>
+    /* CSS styles */
+    @font-face {
+      font-family: 'Roboto';
+      src: url('roboto.ttf') format('truetype');
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Roboto', Arial, sans-serif;
+    }
+
+    #clickerCanvas {
+      cursor: pointer;
+    }
+
+    /* Style for purchase notification */
+    .purchase-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      pointer-events: none;
+    }
+
+    /* Style for upgrade label */
+    .upgrade-label {
+      font-weight: bold;
+      font-size: 14px;
+      color: white;
+      text-align: center;
+    }
+  </style>
+  <title>FreeCornDogs.com</title>
+</head>
+<body>
+<!-- Canvas element -->
+<canvas id="clickerCanvas"></canvas>
+
+<!-- Purchase notification container -->
+<div id="purchase-notifications"></div>
+
+<script>
+  // JavaScript code
+
+  // Get the canvas element
+  const canvas = document.getElementById("clickerCanvas");
+  const context = canvas.getContext("2d");
+
+  // Set canvas dimensions to match the window size
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Initialize click count and click value
+  let clickCount = 0;
+  let showCounter = false;
+  let clickValue = 1; // Initial click value
+
+  // Animation variables
+  let animate = false;
+  let animationFrames = 30;
+  let animationFrame = 0;
+
+  // Load corndog image
+  const corndogImg = new Image();
+  corndogImg.src = "corndog.png";
+
+  // Initialize upgrades data
+  const upgrades = [];
+
+  // Array to store purchase notifications
+  const purchaseNotifications = [];
+
+  // Function to add a new upgrade
+  function addUpgrade(name, baseCost, multiplier, timerDuration) {
+    upgrades.push({
+      name,
+      baseCost,
+      cost: baseCost, // Set the initial cost
+      multiplier,
+      purchased: false,
+      unlockable: false,
+      timer: 0,
+      timerDuration,
+      x: canvas.width / 2 - 50,
+      y: upgrades.length * 150 + 100, // Vertical grid spacing
+      width: 100,
+      height: 100,
+    });
+  }
+
+  // Function to update upgrade unlockability
+  function updateUpgradeUnlockability() {
+    const currentTime = Date.now();
+    for (const upgrade of upgrades) {
+      if (!upgrade.purchased && !upgrade.unlockable && currentTime >= upgrade.timer) {
+        upgrade.unlockable = true;
       }
+    }
+  }
 
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: 'Roboto', Arial, sans-serif;
+  // Function to buy an upgrade
+  function buyUpgrade(upgradeIndex) {
+    const upgrade = upgrades[upgradeIndex - 1]; // Upgrade index is 1-based
+    if (clickCount >= upgrade.cost && upgrade.unlockable && !upgrade.purchased) {
+      clickCount -= upgrade.cost;
+      upgrade.cost *= 2; // Increase the cost for the next purchase
+      clickValue += clickValue * (upgrade.multiplier - 1); // Apply the upgrade effect
+      upgrade.purchased = true;
+      upgrade.unlockable = false;
+      showPurchaseNotification(upgrade.name);
+
+      // Generate a new upgrade with higher values
+      /*
+      const newMultiplier = upgrade.multiplier * 2;
+      addUpgrade(`Upgrade ${upgrades.length + 1}`, upgrade.cost, newMultiplier, upgrade.timerDuration * 2);
+       */
+
+      // Remove the purchased upgrade from the list
+      upgrades.splice(upgradeIndex - 1, 1);
+    }
+  }
+
+  // Function to show a purchase notification
+  function showPurchaseNotification(upgradeName) {
+    const notification = document.createElement("div");
+    notification.className = "purchase-notification";
+    notification.textContent = `Purchased: ${upgradeName}`;
+    document.getElementById("purchase-notifications").appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.opacity = 1;
+      setTimeout(() => {
+        notification.style.opacity = 0;
+        setTimeout(() => {
+          notification.remove();
+        }, 1000); // Remove after 1 second
+      }, 2000); // Hide after 2 seconds
+    }, 10); // Delay showing by 10 milliseconds to ensure animation
+  }
+
+  // Function to draw upgrades on the canvas
+  function drawUpgrades() {
+    for (const upgrade of upgrades) {
+      if (upgrade.unlockable) {
+        context.fillStyle = "#4CAF50"; // Green for unlockable upgrades
+      } else {
+        context.fillStyle = "transparent"; // Make non-unlockable upgrades invisible
       }
+      context.fillRect(upgrade.x, upgrade.y, upgrade.width, upgrade.height);
 
-      #clickerCanvas {
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Canvas element -->
-    <canvas id="clickerCanvas"></canvas>
+      context.fillStyle = "white";
+      context.font = "14px Roboto";
+      context.textAlign = "center";
+      context.fillText(`Cost: ${upgrade.cost}`, upgrade.x + upgrade.width / 2, upgrade.y + upgrade.height / 2);
 
-    <script>
-      // Get the canvas element
-      const canvas = document.getElementById("clickerCanvas");
-      const context = canvas.getContext("2d");
+      if (upgrade.unlockable) {
+        canvas.addEventListener("click", (event) => {
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = event.clientX - rect.left;
+          const mouseY = event.clientY - rect.top;
 
-      // Set canvas dimensions
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      // Initialize click count
-      let clickCount = 0;
-      let showCounter = false;
-
-      // Animation variables
-      let animate = false;
-      let animationFrames = 30;
-      let animationFrame = 0;
-
-      // Load corndog image
-      const corndogImg = new Image();
-      corndogImg.src = "corndog.png";
-
-      // Draw corndog icon and click count
-      corndogImg.onload = function () {
-        draw();
-      };
-
-      // Handle click events
-      canvas.addEventListener("click", function () {
-        clickCount++;
-        if (!showCounter) showCounter = true;
-
-        // Start the animation
-        animate = true;
-        animationFrame = 0;
-
-        draw();
-      });
-
-      // Draw corndog icon and click count on canvas
-      function draw() {
-        // Clear canvas
-        context.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Calculate corndog position
-        const corndogSize = 128;
-        const corndogX = canvas.width / 2 - corndogSize / 2;
-        const corndogY = canvas.height / 2 - corndogSize / 2;
-
-        // Draw corndog icon with animation
-        if (animate) {
-          const scaleFactor = 1 + Math.abs(Math.sin((animationFrame / animationFrames) * Math.PI));
-          const scaledSize = corndogSize * scaleFactor;
-          const scaledX = corndogX - (scaledSize - corndogSize) / 2;
-          const scaledY = corndogY - (scaledSize - corndogSize) / 2;
-
-          context.drawImage(corndogImg, scaledX, scaledY, scaledSize, scaledSize);
-
-          // Increment animation frame
-          animationFrame++;
-          if (animationFrame >= animationFrames) {
-            animate = false;
+          if (
+                  mouseX >= upgrade.x &&
+                  mouseX <= upgrade.x + upgrade.width / 2 &&
+                  mouseY >= upgrade.y &&
+                  mouseY <= upgrade.y + upgrade.height
+          ) {
+            buyUpgrade(upgrades.indexOf(upgrade) + 1);
           }
-        } else {
-          context.drawImage(corndogImg, corndogX, corndogY, corndogSize, corndogSize);
-        }
-
-        // Draw click count if it should be shown
-        if (showCounter) {
-          context.font = "24px Roboto";
-          context.fillStyle = "#000";
-          context.textAlign = "center";
-          context.fillText(
-            "Corndogs: " + clickCount,
-            canvas.width / 2,
-            canvas.height / 2 + corndogSize
-          );
-        }
-
-        // Draw attribution
-        context.font = "12px Roboto";
-        context.fillStyle = "#999";
-        context.textAlign = "right";
-        context.fillText("Icon by Icons8", canvas.width - 10, canvas.height - 10);
+        });
       }
-    </script>
-  </body>
+    }
+  }
+
+  // Function to handle Corndog click
+  function handleCorndogClick(event) {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const corndogSize = 128;
+    const corndogX = canvas.width / 2 - 50;
+    const corndogY = canvas.height / 2 - 50;
+
+    if (
+            mouseX >= corndogX &&
+            mouseX <= corndogX + corndogSize &&
+            mouseY >= corndogY &&
+            mouseY <= corndogY + corndogSize
+    ) {
+      // Handle Corndog click action here
+      clickCount += clickValue;
+      if (!showCounter) showCounter = true;
+      animate = true;
+      animationFrame = 0;
+    }
+  }
+
+  // Main draw function
+  function draw() {
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate Corndog position
+    const corndogSize = 128;
+    const corndogX = canvas.width / 2 - 50;
+    const corndogY = canvas.height / 2 - 50;
+
+    // Draw upgrades
+    drawUpgrades();
+
+    // Draw Corndog icon with animation
+    if (animate) {
+      const scaleFactor = 1 + Math.abs(Math.sin((animationFrame / animationFrames) * Math.PI));
+      const scaledSize = corndogSize * scaleFactor;
+      const scaledX = corndogX - (scaledSize - corndogSize) / 2;
+      const scaledY = corndogY - (scaledSize - corndogSize) / 2;
+
+      context.drawImage(corndogImg, scaledX, scaledY, scaledSize, scaledSize);
+
+      // Increment animation frame
+      animationFrame++;
+      if (animationFrame >= animationFrames) {
+        animate = false;
+      }
+    } else {
+      context.drawImage(corndogImg, corndogX, corndogY, corndogSize, corndogSize);
+    }
+
+    // Draw click count if it should be shown
+    if (showCounter) {
+      context.font = "24px Roboto";
+      context.fillStyle = "#000";
+      context.textAlign = "center";
+      context.fillText(
+              "Corndogs: " + clickCount,
+              canvas.width / 2,
+              canvas.height / 2 + corndogSize
+      );
+    }
+
+    // Draw attribution
+    context.font = "12px Roboto";
+    context.fillStyle = "#999";
+    context.textAlign = "right";
+    context.fillText("Icon by Icons8", canvas.width - 10, canvas.height - 10);
+  }
+
+  // Call the initial update of upgrade unlockability
+  updateUpgradeUnlockability();
+
+  // Add click event listener for Corndog
+  canvas.addEventListener("click", handleCorndogClick);
+
+  // Function to periodically check clickCount and add upgrade
+  function checkAndAddUpgrade() {
+    // Check if clickCount reaches 2 or any other desired value
+    if (clickCount >= 69) {
+      // Add the upgrade when the condition is met
+      addUpgrade("Multiplier", 69, 2, 10000); // Example: unlocks after 10 seconds
+      // Clear the interval as the upgrade has been added
+      clearInterval(checkAndAddUpgradeInterval);
+    }
+  }
+
+  function checkAndAddUpgradeTwo() {
+    if (clickCount >= 420){
+      addUpgrade("Unobtainable", 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999, 2, 10000); // Example: unlocks after 10 seconds
+      // Clear the interval as the upgrade has been added
+      clearInterval(checkAndAddUpgradeIntervalTwo);
+    }
+  }
+
+  const checkAndAddUpgradeInterval = setInterval(checkAndAddUpgrade, 1000); // Check every 1 second
+  const checkAndAddUpgradeIntervalTwo = setInterval(checkAndAddUpgradeTwo, 1000);
+
+  // Start the game loop
+  setInterval(() => {
+    draw();
+    updateUpgradeUnlockability();
+  }, 1000 / 30); // 30 FPS
+</script>
+</body>
 </html>
